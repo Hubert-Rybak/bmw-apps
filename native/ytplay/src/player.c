@@ -171,6 +171,7 @@ struct track {
     struct pq q;
     pthread_t th;
     int started;
+    double shown_t;             /* when its last picture was shown */
     int done;                   /* decoded to the end of the current serial */
     int feed_eof;               /* its input reached the end */
 };
@@ -319,20 +320,19 @@ static void show_frame(struct session *s, struct track *tr, AVFrame *fr, int ser
         if (s->paused || s->buffering) { wait_s(s, 0.2); continue; }
         double d = pts - clock_get(s);
         if (d > 0.002) { wait_s(s, d > 0.05 ? 0.05 : d); continue; }
-        if (d < -LATE_S && now_s() - s->last_status_t < 1e9) {
-            static __thread double last_shown;
-            double t = now_s();
-            if (t - last_shown < STALE_S) {
+        if (d < -LATE_S) {
+            /* too late to show; one is shown every STALE_S all the same, so the picture never stands */
+            if (now_s() - tr->shown_t < STALE_S) {
                 s->dropped++;
                 /* far behind: the decoder leaves out pictures nothing depends on until it has caught up */
                 if (d < -0.25) tr->dec->skip_frame = AVDISCARD_NONREF;
                 pthread_mutex_unlock(&s->mu);
                 return;
             }
-            last_shown = t;
         } else if (d > -0.03) tr->dec->skip_frame = AVDISCARD_DEFAULT;
         break;
     }
+    tr->shown_t = now_s();
     *first = 0;
     s->pos = pts;
     s->w = fr->width;
