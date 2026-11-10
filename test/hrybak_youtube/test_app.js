@@ -1,19 +1,19 @@
 'use strict';
 /**
  * The whole app on this machine: the staged package (kit/tools/build.py --preview-only) runs in the kit's
- * stubbed head unit, against test/mock_youtube.js and the real player tool, laid out as the renderer shows it
+ * stubbed head unit, against mock_youtube.js (this folder) and the real player tool, laid out as the renderer shows it
  * where the kit runs the screen. The test presses what a finger would (the page's targets) and checks what
  * the pages then offer; --shots <folder> also saves each page as a PNG.
  *
  *   python3 kit/tools/build.py --preview-only hrybak_youtube
  *   native/ytplay/build.sh host
- *   node test/test_app.js [--shots <folder>] [--bin <player>] [--loader <ld.so>] [--media <folder>]
+ *   node test/hrybak_youtube/test_app.js [--shots <folder>] [--bin <player>] [--loader <ld.so>] [--media <folder>]
  */
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(__dirname, '..', '..');
 const mockYouTube = require('./mock_youtube');
 
 const args = process.argv.slice(2);

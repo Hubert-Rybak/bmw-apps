@@ -165,7 +165,7 @@ class YouTube {
         this.visitor = o.visitor || '';
         this.good = null;           // the client that last gave working files
         this.clients = o.clients || CLIENTS;
-        // (the HRYBAK_YT_* variables point the app at test/mock_youtube.js on a PC)
+        // (the HRYBAK_YT_* variables point the app at test/hrybak_youtube/mock_youtube.js on a PC)
         this.api = o.api || process.env.HRYBAK_YT_API || API;
         this.suggestUrl = o.suggestUrl || process.env.HRYBAK_YT_SUGGEST || 'https://suggestqueries.google.com/complete/search';
         if (o.thumbBase || process.env.HRYBAK_YT_THUMBS) thumbBase = o.thumbBase || process.env.HRYBAK_YT_THUMBS;

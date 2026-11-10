@@ -1,10 +1,10 @@
 'use strict';
 /**
- * Tests of the app's YouTube and network modules against test/mock_youtube.js, and of the whole chain
+ * Tests of the app's YouTube and network modules against mock_youtube.js (this folder), and of the whole chain
  * (YouTube -> ranged download -> player tool -> frame file) with the player built by
  * native/ytplay/build.sh host:
  *
- *   node test/test_youtube.js [--bin <player>] [--loader <ld.so>] [--media <folder>] [--only <name>]
+ *   node test/hrybak_youtube/test_youtube.js [--bin <player>] [--loader <ld.so>] [--media <folder>] [--only <name>]
  *
  * The media come from native/ytplay/test/run.js's folder (made by it when missing). Node 8 and newer.
  */
@@ -14,7 +14,7 @@ const path = require('path');
 const dgram = require('dgram');
 const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(__dirname, '..', '..');
 const { Net } = require(path.join(ROOT, 'apps/hrybak_youtube/net'));
 const { YouTube, seconds, pickFormats } = require(path.join(ROOT, 'apps/hrybak_youtube/youtube'));
 const { PlayerLink } = require(path.join(ROOT, 'apps/hrybak_youtube/player'));

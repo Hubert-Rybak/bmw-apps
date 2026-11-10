@@ -15,7 +15,13 @@ const X0 = 20, X1 = 1580, TOP = 54;
 const TABS = ['Home', 'Search', 'Playing'];
 const VIDEO_ID = 1;
 
-/* ---- text ---- */
+/* ---- text ----
+ * Everything is drawn with the wide fonts 'ui' (regular) and 'uib' (semibold), literally (no translation):
+ * much of it comes from YouTube. On the screen a logical px is 1.164 device px and a text draws from the
+ * smallest baked atlas at least that large: regular up to 18 from ui@22 and up to 24 from ui@28, semibold up
+ * to 20 from uib@24 and up to 25 from uib@30. Sizes stay within that, so the 36 and 40 px atlases never
+ * take room in the Renderer's glyph texture, which all apps share.
+ */
 const UI = { font: 'ui', literal: true }, UIB = { font: 'uib', literal: true };
 const opt = (bold, align) => (align ? { font: bold ? 'uib' : 'ui', literal: true, align } : bold ? UIB : UI);
 
@@ -104,7 +110,7 @@ function chip(cv, t, x, y, h, label, run, key, o) {
 function notice(cv, t, x, y, w, h, title, lines, button) {
     const n = (lines || []).length;
     let ty = y + h / 2 - (n * 28 + (button ? 70 : 0)) / 2;
-    cv.text(title, x + w / 2, ty, 26, t.text, opt(true, 'center'));
+    cv.text(title, x + w / 2, ty, 25, t.text, opt(true, 'center'));
     (lines || []).forEach((l) => { ty += 30; cv.text(l, x + w / 2, ty, 19, t.dim, opt(false, 'center')); });
     if (button) {
         const bw = Math.round(cv.textWidth(button.label, 20, UIB) + 60);
@@ -231,8 +237,8 @@ function queryField(cv, t, S, A, x, y, w, editable) {
     cv.strokeRoundRect(x, y, w, 60, 12, 1.5, withAlpha('#ffffff', S.typing ? 0.4 : 0.18));
     searchIcon(cv, x + 34, y + 30, 18, t.dim);
     const shown = clean(S.query);
-    const text = shown ? fit(cv, shown, 26, w - 110, true) : 'Search YouTube';
-    const tw = cv.text(text, x + 66, y + 39, 26, shown ? t.text : t.dim, UIB);
+    const text = shown ? fit(cv, shown, 25, w - 110, true) : 'Search YouTube';
+    const tw = cv.text(text, x + 66, y + 39, 25, shown ? t.text : t.dim, UIB);
     if (S.typing && Math.floor(Date.now() / 500) % 2 === 0) cv.fillRect(x + 68 + (shown ? tw : 0), y + 14, 2, 32, t.text);
     if (editable) cv.target(x, y, w, 60, () => A.edit(), 'query', 12);
 }
@@ -396,7 +402,7 @@ function limited(cv, t, S) {
     const lines = ['YouTube needs the Store\'s "Renderer" (mgu-render) with touch: install it in the Store',
         'and restart the head unit. The pages then work by touch and with the iDrive controller.'];
     cv.clear(t.bg);
-    cv.text('YouTube', 800, 190, 44, t.text, opt(true, 'center'));
+    cv.text('YouTube', 800, 196, 25, t.text, opt(true, 'center'));
     lines.forEach((l, i) => cv.text(l, 800, 250 + i * 30, 20, t.dim, opt(false, 'center')));
     if (S.now) cv.text(fit(cv, 'Playing: ' + clean(S.now.video.title), 20, 1400), 800, 350, 20, t.text, opt(false, 'center'));
 }

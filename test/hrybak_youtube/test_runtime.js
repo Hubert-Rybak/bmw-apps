@@ -5,7 +5,7 @@
  * mgu.js: start, entry point, the first frame handed to the "HMI", a bar button, shutdown. An error here is
  * what would show on the car as a tile that says "Loading app" for ever.
  *
- *   node test/test_runtime.js          (Node 8 too: the head unit's)
+ *   node test/hrybak_youtube/test_runtime.js          (Node 8 too: the head unit's)
  *
  * The stand-in SDK only records what the app asks of it; it holds no BMW code. dist/ is rebuilt.
  */
@@ -13,13 +13,13 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(__dirname, '..', '..');
 const STAGE = path.join(ROOT, 'dist', 'hrybak_youtube');
 const SDK = path.join(ROOT, 'oap-sdk');
 function assert(ok, what) { if (!ok) throw new Error('assertion failed: ' + what); }
 
 const FAKE_SDK = `'use strict';
-// A stand-in for the oap-sdk: the calls the kit makes, answered and recorded (test/test_runtime.js).
+// A stand-in for the oap-sdk: the calls the kit makes, answered and recorded (test/hrybak_youtube/test_runtime.js).
 const EventEmitter = require('events');
 const fs = require('fs');
 const trace = (o) => fs.appendFileSync(process.env.FAKE_SDK_TRACE, JSON.stringify(o) + '\\n');
