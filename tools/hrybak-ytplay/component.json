@@ -1,0 +1,21 @@
+{
+  "id": "hrybak-ytplay",
+  "kind": "tool",
+  "version": "0.1.0",
+  "title": "YouTube player",
+  "description": "Decodes the videos the YouTube app downloads and hands the picture to the Renderer. It has no network of its own; sound (experimental) goes to a device picked in the app",
+  "optional": true,
+  "uninstallable": true,
+  "requires": { "mgu-deploy": "0.7.11" },
+  "mguHmi": ["ID7"],
+  "files": [
+    { "path": "hrybak-ytplay", "from": "hrybak-ytplay", "mode": "0755" },
+    { "path": "LICENSE", "from": "LICENSE", "mode": "0644" },
+    { "path": "LICENSE.ffmpeg", "from": "LICENSE.ffmpeg", "mode": "0644" }
+  ],
+  "units": [{ "name": "hrybak-ytplay.service", "from": "hrybak-ytplay.service" }],
+  "enable": [{ "unit": "hrybak-ytplay.service", "target": "multi-user.target" }],
+  "recmgr": ["hrybak-ytplay"],
+  "crashNames": ["hrybak-ytplay"],
+  "restart": ["hrybak-ytplay.service"]
+}
