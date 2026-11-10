@@ -222,10 +222,12 @@ def build_ui(spec, language='en'):
                 'Text1stRow': {'value': credit_title, 'type': 'StringId'},
                 'Text2ndRow': {'value': credit_link, 'type': 'StringId'},
             }]))
-        # the project's own credit, last row
+        # the kit's credit, last row (app.json "credits": [title, link] names the app's own project before it)
         repo_title, repo_link = sid(app, 'REPO_CREDITS_TITLE'), sid(app, 'REPO_CREDITS_LINK')
-        strings[repo_title] = 'iDrive 7 custom apps'
-        strings[repo_link] = 'GitHub cauliflowermossgrape · github.com/cauliflowermossgrape/idrive7-apps'
+        own = spec.get('credits')
+        strings[repo_title] = own[0] if own else 'iDrive 7 custom apps'
+        strings[repo_link] = (own[1] + ' · built with the idrive7-apps kit, github.com/cauliflowermossgrape/idrive7-apps') if own \
+            else 'GitHub cauliflowermossgrape · github.com/cauliflowermossgrape/idrive7-apps'
         items.append(comp('tworow', 'REPO_CREDITS', rows=[{
             'Text1stRow': {'value': repo_title, 'type': 'StringId'},
             'Text2ndRow': {'value': repo_link, 'type': 'StringId'},
@@ -439,6 +441,9 @@ def build(app_id, language='en', preview_only=False):
     # impl.background runs then, without screens
     if spec.get('autostart'):
         pkg['mguAppStartType'] = 'autostart'
+    # app.json "internet": the app gets internet through the Store's uplink (mgu-uplink) while it is online
+    if spec.get('internet'):
+        pkg['mguInternet'] = True
     json.dump(pkg, open(os.path.join(src, 'package.json'), 'w', encoding='utf-8', newline='\n'), indent=2)
     json.dump(manifest, open(os.path.join(src, 'manifest.json'), 'w', encoding='utf-8', newline='\n'), indent=2)
     shutil.copy(os.path.join(KIT, 'platform', 'permissions.json'), os.path.join(src, 'permissions.json'))
@@ -515,7 +520,7 @@ def build(app_id, language='en', preview_only=False):
             body = file.read()
         with open(entry, 'wb') as file:
             file.write(comment.encode('utf-8') + body)
-    rt_spec = {k: spec.get(k) for k in ('id', 'title', 'version', 'screens', 'settings', 'config', 'startWidget')}
+    rt_spec = {k: spec.get(k) for k in ('id', 'title', 'version', 'screens', 'settings', 'config', 'startWidget', 'credits')}
     rt_spec['stateIds'] = state_ids
     json.dump(rt_spec, open(os.path.join(src, 'javascript', 'kit', 'app-spec.json'), 'w', encoding='utf-8', newline='\n'), indent=1)
     locale = {'language': language, 'strings': load_locale(language)}

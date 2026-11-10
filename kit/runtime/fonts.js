@@ -19,6 +19,8 @@ function family(name) {
             size: s.size, ascent: s.ascent, descent: s.descent, atlasW: s.atlasW, atlasH: s.atlasH,
             glyphs: s.glyphs, _alpha: s.alpha, alpha: null, family: name, cacheKey: j.cacheKey || '',
         }));
+        // "wide": the family has the letters of many scripts itself (Latin with accents, Greek, Cyrillic)
+        fam.wide = !!j.wide;
     } catch (e) { fam = null; }
     families[name] = fam;
     return fam;
@@ -27,6 +29,8 @@ function family(name) {
 /** Smallest baked size >= requested (downscaling looks better), else largest. */
 function get(name, size, text) {
     // Shared supplemental atlases avoid duplicating glyphs in every numeric size.
+    const asked = family(name);
+    if (asked && asked.wide) text = null;
     if (text && /[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7ff]/.test(text)) name = 'korean';
     else if (text && /[\u3000-\u9fff\uff00-\uffef]/.test(text)) name = 'cjk';
     else if (text && /[\u0400-\u04ff]/.test(text)) name = 'cyrillic';
@@ -41,6 +45,8 @@ function get(name, size, text) {
 
 /** Whether a family's atlas is there (get() falls back to 'label' for one that isn't). */
 function has(name) { return !!family(name); }
+/** Whether a family draws code point cp itself (else '?'). */
+function covers(name, cp) { const fam = family(name); return !!(fam && fam.length && fam[0].glyphs[cp]); }
 
 function measure(f, s) {
     let w = 0;
@@ -48,4 +54,4 @@ function measure(f, s) {
     return w;
 }
 
-module.exports = { get, has, measure };
+module.exports = { get, has, covers, measure };

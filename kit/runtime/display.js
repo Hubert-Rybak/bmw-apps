@@ -616,6 +616,15 @@ class Display {
         return !!(this.gpu && this.gpu.ready && this.place && !this.blocked && (!stateName || stateName === this.screen.name) && this._shown());
     }
 
+    /**
+     * What a frame drawn now can show besides shapes and text: pictures (record.js setPicture: mgu-render/1, and
+     * the software path) and video (setVideo: a renderer that says it shows video).
+     */
+    media() {
+        const g = this.active() ? this.gpu : null;
+        return { pictures: !g || !!g.native, video: !!(g && g.native && g.info && g.info.video) };
+    }
+
     /** The surface to draw a frame on (reused). */
     canvas(w, h) {
         const scale = this.active() ? this.place.scale : 1;
@@ -631,6 +640,7 @@ class Display {
         // the kit runs the screen: buttons drawn on the page (G.button) take the place of the bar's
         r.own = this.own() && this.active();
         r.extra = r.own && this.place.extra ? this.place.extra : 0;
+        r.media = this.media();
         return r;
     }
 
