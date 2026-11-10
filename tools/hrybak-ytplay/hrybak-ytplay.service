@@ -1,0 +1,17 @@
+[Unit]
+Description=YouTube player for the YouTube app (decodes what the app downloads; pictures to the GPU renderer)
+After=mgu-render.service
+
+[Service]
+# Started as root: root makes the socket /run/hrybak-ytplay/ctl.sock (for the apps' group) and the renderer's
+# frame file /dev/shm/mgu-video-hrybak-ytplay (the renderer takes a frame file from root). The program gives
+# root up (uid 3931, no account) when the first app connects, before it reads anything, and 2 minutes after
+# its start at the latest. It never opens a network connection.
+ExecStart=/var/opt/hrybak-ytplay/current/hrybak-ytplay
+# no core dump to the head unit's crash handler (the program sets the same limit itself)
+LimitCORE=1
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

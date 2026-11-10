@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "apps": {
+    "path": "apps/*",
+    "manifest": "app.json",
+    "icon": "icon.png",
+    "mguHmi": ["ID7"],
+    "uninstallable": true,
+    "requires": { "mgu-render": "0.6.10", "hrybak-ytplay": "0.1.0" },
+    "build": {
+      "python": "kit/tools/build.py",
+      "args": ["{id}"],
+      "sdk": "oap-sdk",
+      "output": "dist/{id}@{version}.tgz",
+      "shared": ["kit/runtime", "kit/platform", "kit/tools/build.py", "kit/tools/pack_data.py", "kit/tools/localize.py",
+        "kit/tools/locale-revisions.json", "kit/tools/oapgen", "oap-sdk"]
+    }
+  },
+  "tools": [
+    { "id": "hrybak-ytplay", "path": "tools/hrybak-ytplay" }
+  ]
+}

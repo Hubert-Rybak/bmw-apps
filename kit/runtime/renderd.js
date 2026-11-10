@@ -31,6 +31,8 @@ const M = { HELLO: 1, PLACE: 2, SHOW: 3, ATLAS: 4, RAMP: 5, LAYER: 6, FRAME: 7, 
 const E = { READY: 101, TICK: 102, ERROR: 103, STATS: 104, CCU: 105 };
 // touch (mgu-render, IterioDev's mgu-renderd): message 9 is CLAIM there; 105 and 106 come back as TOUCH and CLOSED
 const CLAIM = 9, TOUCH = 105, CLOSED = 106;
+// pictures and video (the same numbers in mgu-render/1): a picture's pixels, a video's frame file
+const PICTURE = 10, DROP_PICTURE = 11, VIDEO = 13, DROP_VIDEO = 14, PICTURE_SIDE = 1024;
 // mgu-render/1 (mgu-store native/mgu-render/PROTOCOL.md)
 const X = { MODE: 0x4d520001, GRAB: 0x4d520002, READY: 0x4d520101, STATE: 0x4d520102, CCU: 0x4d520103 };
 const X_MODE_LAYER = 1;
@@ -58,7 +60,7 @@ class RenderClient extends EventEmitter {
         this.placement = null;
         this.visible = false;
         this.inbuf = Buffer.alloc(0);
-        this.sent = { atlas: new Set(), ramp: new Set(), layer: new Set(), image: new Map() };
+        this.sent = { atlas: new Set(), ramp: new Set(), layer: new Set(), image: new Map(), video: new Map() };
         this.stats = null;
         this.waiting = false;        // a frame was sent, no tick back yet
         this.retry = null;
@@ -162,7 +164,7 @@ class RenderClient extends EventEmitter {
         if (this.sock) this.sock.destroy();
         if (this.fd !== null) { fs.closeSync(this.fd); this.fd = null; }
     }
-    _reset() { this.sent.atlas.clear(); this.sent.ramp.clear(); this.sent.layer.clear(); this.sent.image.clear(); this.waiting = false; }
+    _reset() { this.sent.atlas.clear(); this.sent.ramp.clear(); this.sent.layer.clear(); this.sent.image.clear(); this.sent.video.clear(); this.waiting = false; }
     _write(b) {
         if (this.fd !== null) { fs.writeSync(this.fd, b); return true; }
         return this.sock && this.connected ? this.sock.write(b) : false;
@@ -195,7 +197,7 @@ class RenderClient extends EventEmitter {
             if (type === X.READY && p.length >= 12) {
                 const caps = p.readUInt32LE(8);
                 this.native = true;
-                this.info = { touch: !!(caps & 1), controller: !!(caps & 2), frontGate: !!(caps & 4) };
+                this.info = { touch: !!(caps & 1), controller: !!(caps & 2), frontGate: !!(caps & 4), pixmaps: !!(caps & 8), video: !!(caps & 16) };
             } else if (type === E.READY) {
                 this.ready = true; this.errLogged = false;
                 this.screen = { w: p.readUInt32LE(4), h: p.readUInt32LE(8) };
@@ -296,18 +298,41 @@ class RenderClient extends EventEmitter {
         if (r.layersUsed || r.sublayers) (r.layersUsed || r.sublayers).forEach((id) => this._ensureLayer(id));
         if (r.images) r.images.forEach((id) => this._ensureImage(id));
     }
-    /** upload a pixel image when this connection hasn't got its current version */
+    /** upload a picture (record.js setPicture) when this connection hasn't got its current version */
     _ensureImage(id) {
-        if (this.native) { if (!this.imgWarned) { this.imgWarned = true; this.log.warn('renderd: pixel images need the upstream dialect'); } return; }
-        const im = rec.imageById.get(id);
+        // pictures are mgu-render/1's (in the upstream dialect message 10 is GRAB): Recorder.picture draws none there
+        if (!this.native) return;
+        const im = rec.pictureById.get(id);
         if (!im || !im.data) return;
         if (this.sent.image.get(id) === im.ver) return;
+        if (im.w < 1 || im.h < 1 || im.w > PICTURE_SIDE || im.h > PICTURE_SIDE || im.data.length < im.w * im.h * 4) return;
         const n = im.w * im.h * 4, b = this._imageBuf(8 + 12 + n);
-        b.writeUInt32LE(M.IMAGE, 0); b.writeUInt32LE(12 + n, 4);
+        b.writeUInt32LE(PICTURE, 0); b.writeUInt32LE(12 + n, 4);
         b.writeUInt32LE(id, 8); b.writeUInt32LE(im.w, 12); b.writeUInt32LE(im.h, 16);
         Buffer.from(im.data.buffer, im.data.byteOffset, n).copy(b, 20);
         this._write(b);
         this.sent.image.set(id, im.ver);
+    }
+    /** A picture the app no longer draws: the renderer frees it. */
+    dropPicture(id) {
+        if (this.sent.image.delete(id) && this.ready && this.native) this._write(this._u32msg(DROP_PICTURE, [id]));
+    }
+    /** Name every video's frame file (record.js setVideo) to a renderer that shows video; forget dropped ones. */
+    _ensureVideos() {
+        if (!this.native || !this.info || !this.info.video) return;
+        rec.videoById.forEach((v, id) => {
+            if (this.sent.video.get(id) === v.ver) return;
+            const path = Buffer.from(v.path), b = Buffer.alloc(4 + path.length);
+            b.writeUInt32LE(id, 0);
+            path.copy(b, 4);
+            this._write(msg(VIDEO, b));
+            this.sent.video.set(id, v.ver);
+        });
+        this.sent.video.forEach((ver, id) => {
+            if (rec.videoById.has(id)) return;
+            this.sent.video.delete(id);
+            this._write(this._u32msg(DROP_VIDEO, [id]));
+        });
     }
     _ensureLayer(id) {
         if (this.sent.layer.has(id)) return;
@@ -327,6 +352,7 @@ class RenderClient extends EventEmitter {
     frame(r) {
         if (!this.ready || !this.placement) return false;
         this._ensureRes(r);
+        this._ensureVideos();
         this.waiting = true;
         return this._write(msg(M.FRAME, words(r.words())));
     }

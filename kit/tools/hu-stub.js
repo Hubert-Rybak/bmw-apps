@@ -90,6 +90,17 @@ function headUnit(stage, o) {
         onScroll(fn) { display.onScroll = fn; },
         onLayout(fn) { display.onLayout(fn); },
         controller: { grab(on) { display.grab(on); }, onInput(fn) { display.onCcu = fn; } },
+        // as kit/mgu.js
+        media: (() => {
+            const rec = require(path.join(kitDir, 'record'));
+            return {
+                picture: (id, w, h, data) => rec.setPicture(id, w, h, data),
+                dropPicture: (id) => { rec.dropPicture(id); if (display.gpu) display.gpu.dropPicture(id); },
+                video: (id, file) => rec.setVideo(id, file),
+                dropVideo: (id) => rec.dropVideo(id),
+                can: () => display.media(),
+            };
+        })(),
         signals: live ? liveSignals(hu) : { watch: async (iface) => ({ iface, error: 'preview' }), proxy: async () => { throw new Error('preview'); } },
         theme: themeFn,
         loop: live ? liveLoop(hu) : (n, fps, fn) => { loops[n] = fn; return { stop() {}, kick() {} }; },

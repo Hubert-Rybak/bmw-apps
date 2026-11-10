@@ -582,6 +582,21 @@ async function runInner(impl) {
         onTab(fn) { display.onTab = fn; },
         /** onTap(fn): fn(x, y) for a tap on the page (app drawing px), where the kit runs the screen. */
         onTap(fn) { display.onTap = fn; },
+        /**
+         * Pictures and video on the page (record.js): media.picture(id, w, h, rgba) / dropPicture(id) for
+         * cv.picture(id, x, y, w, h, r); media.video(id, frameFile) / dropVideo(id) for cv.video(...).
+         * cv.media says what the frame being drawn can show: { pictures, video }.
+         */
+        media: (() => {
+            const rec = require('./record');
+            return {
+                picture: (id, w, h, data) => rec.setPicture(id, w, h, data),
+                dropPicture: (id) => { rec.dropPicture(id); if (display.gpu) display.gpu.dropPicture(id); },
+                video: (id, file) => rec.setVideo(id, file),
+                dropVideo: (id) => rec.dropVideo(id),
+                can: () => display.media(),
+            };
+        })(),
         /** Show a sheet (sheet.js) over the page; false where it can't be (software path, other renderers). */
         sheet(sh) { return display.openSheet(sh); },
         /** hideButton(id): leave bar button id out where the kit runs the screen (its job is on the page there). */

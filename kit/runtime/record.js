@@ -17,7 +17,7 @@ const { t } = require('./i18n');
 
 const OP = {
     CLEAR: 1, RECT: 2, GRAD: 3, RRECT: 4, RSTROKE: 5, CARD: 6, RAMPRECT: 7, ARC: 8, LINE: 9,
-    TRIS: 10, GLYPHS: 11, LAYER: 12, CLIP: 13, NOCLIP: 14, QUAD: 15, ALPHA: 16, XF: 17, IMAGE: 18,
+    TRIS: 10, GLYPHS: 11, LAYER: 12, CLIP: 13, NOCLIP: 14, QUAD: 15, ALPHA: 16, XF: 17, IMAGE: 18, VIDEO: 19,
 };
 
 /* ---------- colours: 0xRRGGBBAA ---------- */
@@ -69,6 +69,24 @@ function setImage(id, w, h, data) {
     return im;
 }
 
+// pictures (thumbnails, covers): id -> { w, h, data (premultiplied RGBA bytes), ver }, at most 1024 px a side.
+// Drawn with Recorder.picture(); the transport uploads each once (again when setPicture changes it). In this
+// kit op 18 is always a picture in mgu-render's own form (x y w h r id): upstream's pixel images (Doom) are not
+// used by this repository's apps.
+const pictureById = new Map();
+function setPicture(id, w, h, data) {
+    const p = pictureById.get(id) || { ver: 0 };
+    p.w = w | 0; p.h = h | 0; p.data = data; p.ver = (p.ver + 1) >>> 0;
+    pictureById.set(id, p);
+    return p;
+}
+function dropPicture(id) { pictureById.delete(id); }
+// videos: id -> the frame file a player writes (/dev/shm/mgu-video-<name>, mgu-render PROTOCOL.md "Video").
+// Drawn with Recorder.video(); the transport names each file to the renderer once per connection.
+const videoById = new Map();
+function setVideo(id, path) { videoById.set(id, { path: String(path), ver: ((videoById.get(id) || { ver: 0 }).ver + 1) >>> 0 }); }
+function dropVideo(id) { videoById.delete(id); }
+
 // cached layers (static parts of widgets): drawn once, used by id
 let layerSeq = 0;
 const layerById = new Map();
@@ -116,13 +134,25 @@ class Recorder {
     target(x, y, w, h, run, key, r) { this.targets.push({ x, y, w, h, run, key: String(key), r }); return this; }
 
     /* ---------- canvas.js API ---------- */
-    /** Draw pixel image `id` (see setImage) scaled into x, y, w, h (nearest pixel). */
-    image(id, x, y, w, h) {
-        const im = imageById.get(id);
-        if (!im || !(w > 0 && h > 0)) return this;
+    /**
+     * Draw picture `id` (see setPicture) over x, y, w, h with corner radius r, filtered. Nothing where the
+     * frame's renderer has no pictures (this.media.pictures false: an older renderer).
+     */
+    picture(id, x, y, w, h, r) {
+        if (!pictureById.has(id) || !(w > 0 && h > 0) || (this.media && !this.media.pictures)) return this;
         this._grow(7); const f = this.f, i = this.n;
-        this.u[i] = OP.IMAGE; this.u[i + 1] = id; this.u[i + 2] = im.ver; f[i + 3] = x; f[i + 4] = y; f[i + 5] = w; f[i + 6] = h;
+        this.u[i] = OP.IMAGE; f[i + 1] = x; f[i + 2] = y; f[i + 3] = w; f[i + 4] = h; f[i + 5] = r || 0; this.u[i + 6] = id;
         this.images.add(id);
+        this.n += 7; return this;
+    }
+    /**
+     * The newest frame of video `id` (see setVideo) fitted into x, y, w, h (aspect kept, centred), corner
+     * radius r. Only where the frame's renderer shows video (this.media.video); the software path has none.
+     */
+    video(id, x, y, w, h, r) {
+        if (!videoById.has(id) || !(w > 0 && h > 0) || !(this.media && this.media.video)) return this;
+        this._grow(7); const f = this.f, i = this.n;
+        this.u[i] = OP.VIDEO; f[i + 1] = x; f[i + 2] = y; f[i + 3] = w; f[i + 4] = h; f[i + 5] = r || 0; this.u[i + 6] = id;
         this.n += 7; return this;
     }
     clear(c) { this._grow(2); this.u[this.n++] = OP.CLEAR; this.u[this.n++] = pack(c || [0, 0, 0, 0]); return this; }
@@ -353,7 +383,8 @@ function play(words, real) {
             i += k * 8; break;
         }
         case OP.LAYER: { const L = layerById.get(u[i]); if (L) cv.blit(softLayer(L), f[i + 1], f[i + 2]); i += 3; break; }
-        case OP.IMAGE: { const im = imageById.get(u[i]); if (im && cv.drawImage) cv.drawImage(im.data, im.w, im.h, f[i + 2], f[i + 3], f[i + 4], f[i + 5]); i += 6; break; }
+        case OP.IMAGE: { const im = pictureById.get(u[i + 5]); if (im && cv.drawImage) cv.drawImage(im.data, im.w, im.h, f[i], f[i + 1], f[i + 2], f[i + 3]); i += 6; break; }
+        case OP.VIDEO: i += 6; break;     // (software path: no video)
         case OP.CLIP: clip = [f[i], f[i + 1], f[i + 2], f[i + 3]]; i += 4; break;     // (software path: ignored)
         case OP.NOCLIP: clip = null; break;
         case OP.ALPHA: alpha = f[i]; i += 1; break;
@@ -365,4 +396,7 @@ function play(words, real) {
     return real;
 }
 
-module.exports = { Recorder, OP, pack, unpack, rampId, rampList, atlasId, atlasList, atlasById, makeLayer, dropLayer, layerById, play, softLayer, setImage, imageById };
+module.exports = {
+    Recorder, OP, pack, unpack, rampId, rampList, atlasId, atlasList, atlasById, makeLayer, dropLayer, layerById, play, softLayer, setImage, imageById,
+    setPicture, dropPicture, pictureById, setVideo, dropVideo, videoById,
+};
