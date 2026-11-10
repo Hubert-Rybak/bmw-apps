@@ -1,0 +1,9 @@
+# build output (apps are built on the head unit by the Store; dist/ packages built with an extracted
+# oap-sdk contain BMW's SDK and must never be published)
+dist/
+oap-sdk/
+preview/
+node_modules/
+native/ytplay/out/
+*.log
+.DS_Store
