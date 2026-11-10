@@ -227,8 +227,18 @@ class PlayerLink extends EventEmitter {
             });
         }).catch((e) => {
             if (f.dead || sid !== this.sid) return;
-            this.log.warn('player: ' + m.stream + ' at byte ' + m.off + ': ' + (e && e.message || e));
             delete this.feeds[m.stream];
+            // a connection that hiccuped is tried again for a while (the tool waits 30 s for its bytes); a server
+            // that answers "no" (the address ran out) is the caller's to deal with
+            const refused = e && e.status >= 400 && e.status < 500;
+            m.tries = (m.tries || 0) + 1;
+            if (!refused && m.tries <= 6) {
+                const again = { dead: false, conn: null, src: null };
+                this.feeds[m.stream] = again;
+                setTimeout(() => { if (!again.dead && this.feeds[m.stream] === again && sid === this.sid) this._feed(m); }, 2500);
+                return;
+            }
+            this.log.warn('player: ' + m.stream + ' at byte ' + m.off + ': ' + (e && e.message || e));
             this.emit('feederror', { stream: m.stream, off: m.off, error: e });
         });
     }

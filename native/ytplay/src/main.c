@@ -31,6 +31,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include <libavutil/log.h>
+
 #define LINE_MAX_LEN 4096
 #define PICTURE_MAX (4 << 20)       /* a thumbnail file, bytes */
 #define DROP_AFTER_S 120.0
@@ -406,6 +408,8 @@ int main(int argc, char **argv)
             return 2;
         }
     }
+    /* the decoders' own chatter stays out of the journal */
+    av_log_set_level(AV_LOG_ERROR);
     signal(SIGPIPE, SIG_IGN);
     struct sigaction sa;
     memset(&sa, 0, sizeof sa);

@@ -165,9 +165,10 @@ class YouTube {
         this.visitor = o.visitor || '';
         this.good = null;           // the client that last gave working files
         this.clients = o.clients || CLIENTS;
-        this.api = o.api || API;
-        this.suggestUrl = o.suggestUrl || 'https://suggestqueries.google.com/complete/search';
-        if (o.thumbBase) thumbBase = o.thumbBase;
+        // (the HRYBAK_YT_* variables point the app at test/mock_youtube.js on a PC)
+        this.api = o.api || process.env.HRYBAK_YT_API || API;
+        this.suggestUrl = o.suggestUrl || process.env.HRYBAK_YT_SUGGEST || 'https://suggestqueries.google.com/complete/search';
+        if (o.thumbBase || process.env.HRYBAK_YT_THUMBS) thumbBase = o.thumbBase || process.env.HRYBAK_YT_THUMBS;
     }
 
     setRegion(hl, gl) { this.hl = hl || this.hl; this.gl = gl || this.gl; }

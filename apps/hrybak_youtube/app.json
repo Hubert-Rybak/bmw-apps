@@ -1,0 +1,43 @@
+{
+  "id": "hrybak_youtube",
+  "title": "YouTube",
+  "description": "Search YouTube and watch videos on the centre screen while parked. Unofficial; needs the YouTube player tool, the Renderer and internet for the car",
+  "version": "0.1.0",
+  "vendor": "hrybak",
+  "loggingId": "OAY1",
+  "internet": true,
+  "credits": ["YouTube for iDrive 7 (unofficial)", "github.com/Hubert-Rybak/bmw-apps"],
+  "memoryKB": 262144,
+  "cpuLimit": 60,
+  "signals": {
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusCarSpeed2": "rs",
+      "_optional": "the picture is shown at any speed (no speed signal)"
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "YouTube",
+      "buttons": [
+        ["BTN_PLAY", "Play / Pause"],
+        ["BTN_SETTINGS", "Settings"]
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "quality", "label": "Picture size", "type": "choice", "default": "720",
+     "options": [["360", "360p (least data)"], ["480", "480p"], ["720", "720p"], ["1080", "1080p (may stutter)"]]},
+    {"key": "fps60", "label": "Allow 60 frames a second (may stutter)", "type": "bool", "default": false},
+    {"key": "parkedOnly", "label": "Picture only while parked", "type": "bool", "default": true},
+    {"key": "volume", "label": "Sound level (experimental, see Sound on the Playing page)", "type": "choice", "default": "quiet",
+     "options": [["quiet", "Quiet"], ["medium", "Medium"], ["loud", "Loud"], ["full", "Full"]]},
+    {"key": "region", "label": "Search language and region", "type": "choice", "default": "en-US",
+     "options": [["en-US", "English (US)"], ["en-GB", "English (UK)"], ["pl-PL", "Polski"], ["de-DE", "Deutsch"], ["fr-FR", "Français"],
+                 ["es-ES", "Español"], ["it-IT", "Italiano"], ["nl-NL", "Nederlands"], ["cs-CZ", "Čeština"], ["ro-RO", "Română"]]},
+    {"key": "keepHistory", "label": "Remember watched videos and searches", "type": "bool", "default": true},
+    {"key": "theme", "label": "Colour theme", "type": "choice", "default": "m_tricolour",
+     "options": [["m_red", "M Red"], ["m_tricolour", "M Tricolour"], ["ice", "Ice White"], ["amber", "Night Amber"]]}
+  ]
+}
