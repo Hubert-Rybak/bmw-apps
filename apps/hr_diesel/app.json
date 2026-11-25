@@ -1,0 +1,48 @@
+{
+  "id": "hr_diesel",
+  "title": "Diesel",
+  "description": "Diesel particulate filter: soot and ash, regeneration state and log, request a regeneration, AdBlue, EGR valves and injectors (B47 / B57)",
+  "version": "0.10.2",
+  "vendor": "custom",
+  "loggingId": "OAF0",
+  "iconGlyph": "DPF",
+  "autostart": true,
+  "mguHmi": ["ID7", "ID8"],
+  "requires": { "idrive7-renderd": "2.1.18", "mgu-inputgate": "1.1.0" },
+  "signals": {
+    "de.bmw.infotainment.vehicle.CDS": {
+      "statusEngineSpeed2": "rs"
+    },
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusVehiclePartType": "rs"
+    },
+    "de.bmw.infrastructure.VehicleCondition": {
+      "_optional": "the car locked and left: nothing read, so it can sleep",
+      "VehicleCondition": "s"
+    },
+    "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
+      "_instances": "SystemFunctionsInternalTasuInst1",
+      "_methods": ["sendTasuRequest"],
+      "_broadcasts": ["sendTasuResponse"]
+    }
+  },
+  "screens": [
+    { "name": "MAIN", "kind": "canvas", "title": "Diesel",
+      "buttons": [["BTN_PAGE", "Next page"], ["BTN_PREV", "Previous page"], ["BTN_REGEN", "Request regeneration"], ["BTN_SETTINGS", "Settings"]] }
+  ],
+  "settings": [
+    {"key": "distUnit", "label": "Distance unit", "type": "choice", "default": "km",
+     "options": [["km", "km"], ["mi", "miles"]]},
+    {"key": "tempUnit", "label": "Temperature unit", "type": "choice", "default": "c",
+     "options": [["c", "Celsius"], ["f", "Fahrenheit"]], "aliases": {"C": "c", "F": "f"}},
+    {"key": "theme", "label": "Colour theme", "type": "choice", "default": "m_tricolour",
+     "options": [["m_red", "M Red"], ["m_tricolour", "M Tricolour"], ["ice", "Ice White"], ["amber", "Night Amber"]]},
+    {"key": "layout", "label": "Screen layout", "type": "choice", "default": "full",
+     "options": [["full", "Full screen"], ["standard", "Standard"]]},
+    {"key": "renderer", "label": "Renderer", "type": "choice", "default": "auto",
+     "options": [["auto", "GPU 60 fps (default)"], ["software", "Software"]]},
+    {"key": "demo", "label": "Demo data", "type": "choice", "default": "auto",
+     "options": [["auto", "Auto"], ["on", "Always"], ["off", "Never"]]}
+  ],
+  "config": { "ddeAddress": 18, "scrAddress": 11, "readOnly": false }
+}
