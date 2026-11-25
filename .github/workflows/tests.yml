@@ -1,0 +1,43 @@
+name: Tests
+
+# The apps' checks need no SDK, renderer or car. The head unit runs Node 8: 8.9.4 on 2019 units, 8.16.2 on later
+# ones, so everything that runs in the car is checked on both, and on a current Node for the PC tools.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['8.9.4', '8.16.2', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Syntax of everything that runs in the car
+        run: git ls-files 'apps/*.js' 'kit/runtime/*.js' 'kit/tools/oapgen/*.js' | xargs -n1 node --check
+      - name: App tests
+        run: for t in tests/test_*.js; do echo "== $t"; node "$t" || exit 1; done
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Every app builds an offline preview in every language
+        run: |
+          for app in $(ls apps); do
+            for lang in en ko zh-CN zh-TW; do
+              python3 kit/tools/build.py --preview-only --language "$lang" "$app"
+            done
+          done

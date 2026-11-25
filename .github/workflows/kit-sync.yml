@@ -1,0 +1,63 @@
+name: Kit sync
+
+# Weekly: copies the upstream idrive7-apps kit onto the upstream-kit branch (tools/sync-kit.sh), merges it on a
+# branch off main (tools/merge-kit.sh) and opens a pull request. A conflict the script can't settle is left
+# for you: the pull request then holds upstream-kit alone.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Upstream commit, tag or branch
+        default: main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Tools to re-bake the glyph atlases
+        run: |
+          sudo apt-get update -q && sudo apt-get install -yq fonts-noto-cjk
+          pip install -q pillow
+      - name: Copy the upstream kit
+        id: sync
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898299+github-actions[bot]@users.noreply.github.com'
+          git fetch origin upstream-kit:upstream-kit
+          before=$(git rev-parse upstream-kit)
+          tools/sync-kit.sh '${{ inputs.ref || 'main' }}'
+          after=$(git rev-parse upstream-kit)
+          if [ "$before" = "$after" ]; then echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "commit=$(git show upstream-kit:kit/UPSTREAM | sed -n 's/^commit: //p' | cut -c1-7)" >> "$GITHUB_OUTPUT"
+          git push origin upstream-kit
+      - name: Merge it on a branch and open a pull request
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="kit-sync/${{ steps.sync.outputs.commit }}"
+          git checkout -b "$branch" origin/main
+          if tools/merge-kit.sh; then
+            note="Merged with tools/merge-kit.sh: translation rows from both sides, locale JSON and glyph atlases made again."
+          else
+            git merge --abort
+            git reset --hard upstream-kit
+            note="tools/merge-kit.sh stopped on a conflict it can't settle. Check out main, run tools/merge-kit.sh, resolve what it lists, and push."
+          fi
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "Kit: upstream idrive7-apps ${{ steps.sync.outputs.commit }}" \
+            --body "The upstream kit at ${{ steps.sync.outputs.commit }} (kit/UPSTREAM). $note"
