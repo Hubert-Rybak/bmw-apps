@@ -67,9 +67,15 @@ To update:
    Any other conflict is listed for you.
 3. Push the branch and `upstream-kit`, and merge the pull request once the tests pass.
 
-The **Kit sync** workflow does this weekly and opens the pull request. It needs *Settings > Actions > General > Allow
-GitHub Actions to create and approve pull requests*. Pull requests opened by Actions don't start other workflows, so
-run **Tests** on that branch by hand (Actions > Tests > Run workflow).
+The **Kit sync** workflow does this every Monday, and needs you only when something is wrong:
+
+- upstream's kit unchanged: nothing happens;
+- the merge settles on its own and the tests pass on it: it goes straight into `main`;
+- a conflict the script can't settle, or failing tests: a pull request `Kit: upstream idrive7-apps <commit>`
+  waits for you. Once it's merged, the next run carries on as usual.
+
+Opening that pull request needs *Settings > Actions > General > Allow GitHub Actions to create and approve pull
+requests*. Run it by hand from Actions > Kit sync > Run workflow (optionally with an upstream commit or tag).
 
 ## Licence
 
