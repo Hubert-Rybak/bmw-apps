@@ -1,0 +1,43 @@
+# The parts of cauliflowermossgrape/idrive7-apps that bmw-apps keeps a copy of (tools/sync-kit.sh).
+#
+#   <upstream path>                 copied to the same path here
+#   <upstream path> -> <path here>  copied to another path
+#   !<path here>                    left out after copying
+#
+# Everything here lives on the upstream-kit branch exactly as upstream has it. Change it on main only
+# when an app needs it; the next sync merges upstream's changes into yours.
+
+LICENSE -> LICENSE.MIT
+# the MIT notice inside every app package (build.py copies kit/runtime whole)
+LICENSE -> kit/runtime/LICENSE.MIT
+
+# what an app's build reads (mgu-repo.json "shared")
+kit/runtime
+kit/platform
+kit/localization/fonts
+!kit/localization/fonts/diagnostic-zh-CN.json
+kit/localization/credit.es.json
+kit/localization/credit.ru.json
+kit/localization/credit.zh-CN.json
+kit/localization/credit.zh-TW.json
+kit/tools/build.py
+kit/tools/pack_data.py
+kit/tools/localize.py
+kit/tools/locale-revisions.json
+kit/tools/oapgen
+
+# development: SDK extraction, the browser emulator, previews, icons, translations and their font atlases
+kit/emu
+kit/tools/extract_sdk.js
+kit/tools/emu.js
+kit/tools/hu-stub.js
+kit/tools/preview.js
+kit/tools/make_icon.js
+kit/tools/render_icons.py
+kit/tools/sync_locales.py
+kit/tools/bake_fonts.py
+kit/tools/bake_cjk.py
+kit/tools/bake_korean.py
+
+# test data: BMW's SGBD index of engine units (Live Data's), for the Diesel tests
+apps/live_data/builtin/sgbd_index.json -> kit/tools/fixtures/sgbd_index.json

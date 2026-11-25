@@ -1,0 +1,20 @@
+# BMW's SDK - extract it from your own head unit (kit/tools/extract_sdk.js), never commit it
+oap-sdk
+# build output - every .mgu contains BMW's SDK, so don't publish these either
+dist/
+/preview/
+*.mgu
+*.tgz
+# the unit's SOME/IP catalog, copied from your unit
+reference/
+# downloaded fonts for the atlas bakers
+kit/tools/.font-cache/
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+.claude/
+*.pem
+*.key
+*.log

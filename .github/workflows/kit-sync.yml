@@ -1,0 +1,119 @@
+name: Kit sync
+
+# Weekly: copies the upstream idrive7-apps kit onto the upstream-kit branch (tools/sync-kit.sh) and merges it into
+# main (tools/merge-kit.sh) without asking, when three things hold: upstream's kit changed, the merge settles on
+# its own, and the tests pass on the merge. Otherwise it opens a pull request for you: the failing tests, or a
+# conflict the script can't settle. Nothing happens in a week upstream's kit didn't change.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Upstream commit, tag or branch
+        default: main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency: kit-sync
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.sync.outputs.changed }}
+      commit: ${{ steps.sync.outputs.commit }}
+      clean: ${{ steps.merge.outputs.clean }}
+      branch: ${{ steps.merge.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Copy the upstream kit
+        id: sync
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898299+github-actions[bot]@users.noreply.github.com'
+          git fetch origin upstream-kit:upstream-kit
+          before=$(git rev-parse upstream-kit)
+          tools/sync-kit.sh '${{ inputs.ref || 'main' }}'
+          after=$(git rev-parse upstream-kit)
+          if [ "$before" = "$after" ] && git merge-base --is-ancestor upstream-kit HEAD; then
+            echo "Upstream's kit hasn't changed."
+            echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "commit=$(git show upstream-kit:kit/UPSTREAM | sed -n 's/^commit: //p' | cut -c1-7)" >> "$GITHUB_OUTPUT"
+          git push origin upstream-kit
+      - name: Tools to re-bake the glyph atlases
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          sudo apt-get update -q && sudo apt-get install -yq fonts-noto-cjk
+          pip install -q pillow
+      - name: Merge it on a branch
+        id: merge
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          branch="kit-sync/${{ steps.sync.outputs.commit }}"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "An earlier run left $branch for you; leaving it as it is."
+            echo "clean=left" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git checkout -b "$branch"
+          if tools/merge-kit.sh; then
+            echo "clean=true" >> "$GITHUB_OUTPUT"
+          else
+            git merge --abort || true
+            git reset --hard upstream-kit
+            echo "clean=false" >> "$GITHUB_OUTPUT"
+          fi
+          git push origin "$branch"
+
+  test:
+    needs: merge
+    if: needs.merge.outputs.clean == 'true'
+    uses: ./.github/workflows/tests.yml
+    with:
+      ref: ${{ needs.merge.outputs.branch }}
+
+  finish:
+    needs: [merge, test]
+    if: always() && needs.merge.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Into main, or a pull request for you
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ needs.merge.outputs.branch }}
+          COMMIT: ${{ needs.merge.outputs.commit }}
+        run: |
+          git fetch origin "$BRANCH"
+          if [ '${{ needs.merge.outputs.clean }}' = 'true' ] && [ '${{ needs.test.result }}' = 'success' ] \
+             && git merge-base --is-ancestor HEAD FETCH_HEAD; then
+            git push origin FETCH_HEAD:main
+            git push origin --delete "$BRANCH"
+            echo "main now has the upstream kit at $COMMIT"
+            exit 0
+          fi
+          if [ '${{ needs.merge.outputs.clean }}' = 'left' ]; then
+            why="An earlier run left this branch for you (a conflict or failing tests)."
+          elif [ '${{ needs.merge.outputs.clean }}' != 'true' ]; then
+            why="tools/merge-kit.sh stopped on a conflict it can't settle, so this branch holds upstream-kit alone. On a branch off main, run tools/merge-kit.sh, resolve what it lists, and push."
+          elif [ '${{ needs.test.result }}' != 'success' ]; then
+            why="The merge went through, but the tests failed on it: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          else
+            why="main moved while this ran; merge main into this branch."
+          fi
+          gh pr view "$BRANCH" --json number >/dev/null 2>&1 || gh pr create --base main --head "$BRANCH" \
+            --title "Kit: upstream idrive7-apps $COMMIT" --body "The upstream kit at $COMMIT (kit/UPSTREAM) needs you. $why"

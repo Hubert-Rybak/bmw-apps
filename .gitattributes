@@ -1,0 +1,10 @@
+# Unix line endings in the working tree on every OS: the scripts run on the head unit
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.png binary
+*.gif binary
+*.mgu binary
+*.tgz binary
+*.pack binary
+# translation catalogs: rows added here and upstream both stay when the kit is merged (tools/merge-kit.sh)
+kit/runtime/locales/*.tsv merge=union

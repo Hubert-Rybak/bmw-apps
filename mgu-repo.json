@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "apps": {
+    "path": "apps/*",
+    "manifest": "app.json",
+    "icon": "icon.png",
+    "mguHmi": ["ID7", "ID8"],
+    "requires": { "idrive7-renderd": "2.1.18", "mgu-inputgate": "1.1.0" },
+    "build": {
+      "python": "kit/tools/build.py",
+      "args": ["{id}"],
+      "sdk": "oap-sdk",
+      "output": "dist/{id}@{version}.tgz",
+      "shared": ["kit/runtime", "kit/platform", "kit/localization", "kit/tools/build.py", "kit/tools/pack_data.py",
+        "kit/tools/localize.py", "kit/tools/locale-revisions.json", "kit/tools/oapgen", "oap-sdk"]
+    }
+  }
+}
